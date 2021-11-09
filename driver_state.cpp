@@ -40,21 +40,14 @@ void render(driver_state& state, render_type type)
     for (unsigned int i = 0; i < state.num_vertices; ++i) {
         geometry_arr[i].data = new float[MAX_FLOATS_PER_VERTEX];
         data_vertex vertex;
-        // std::cout << "TODO: Check if vertex.data is correct" << std::endl;
         vertex.data = &(state.vertex_data[i * state.floats_per_vertex]);
         state.vertex_shader(vertex, geometry_arr[i], state.uniform_data);
-        // geometry_arr[i].gl_Position = 
     }
 
     switch(type){ 
         case render_type::triangle:
 
             for(unsigned int i = 0; i < state.num_vertices-2; i += 3) {
-            // for(unsigned int i = 0; i < state.num_vertices*state.floats_per_vertex; i += state.floats_per_vertex) {
-                // rasterize_triangle(state, 
-                //                    geometry_arr[i],
-                //                    geometry_arr[i+1],
-                //                    geometry_arr[i+2]);
                 clip_triangle(state, 
                               geometry_arr[i],
                               geometry_arr[i+1],
@@ -75,6 +68,9 @@ void render(driver_state& state, render_type type)
         case render_type::strip:
 
         break;
+    }
+    for(unsigned int i = 0; i < state.num_vertices; ++i) {
+        delete[] geometry_arr[i].data;
     }
     delete[] geometry_arr;
     std::cout<<"TODO: implement rendering."<<std::endl;
