@@ -125,16 +125,16 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     float beta;
     float gamma;
 
-    int x_min = std::min(std::min(point_a[0], point_b[0]), point_c[0]);
-    int y_min = std::min(std::min(point_a[1], point_b[1]), point_c[1]);
+    // int x_min = std::min(std::min(point_a[0], point_b[0]), point_c[0]);
+    // int y_min = std::min(std::min(point_a[1], point_b[1]), point_c[1]);
 
-    int x_max = std::max(std::max(point_a[0], point_b[0]), point_c[0]);
-    int y_max = std::max(std::max(point_a[1], point_b[1]), point_c[1]);
+    // int x_max = std::max(std::max(point_a[0], point_b[0]), point_c[0]);
+    // int y_max = std::max(std::max(point_a[1], point_b[1]), point_c[1]);
 
-    // for (unsigned int i = 0; i < state.image_width; ++i) {
-    //     for (unsigned int j = 0; j < state.image_height; ++j) {
-    for (unsigned int i = x_min; i < x_max; ++i) {
-        for (unsigned int j = y_min; j < y_max; ++j) {
+    for (unsigned int i = 0; i < state.image_width; ++i) {
+        for (unsigned int j = 0; j < state.image_height; ++j) {
+    // for (unsigned int i = x_min; i < x_max; ++i) {
+    //     for (unsigned int j = y_min; j < y_max; ++j) {
             // figure out what to put for z 
             vec3 point_p = vec3(i, j, 0);
             alpha = (0.5 * ((point_b[0]*point_c[1] - point_c[0]*point_b[1]) + 
