@@ -1,0 +1,23 @@
+size 320 240
+vertex_shader transform
+fragment_shader blue
+uniform 2 0 0 -1 0 2 0 -1 0 0 -1 0 0 0 0 1 
+vertex_data fff
+v .1 .1 0
+v .4 .1 0
+v .4 .4 0
+v .4 .4 0
+v .1 .1 0
+v .1 .4 0
+render triangle
+vertex_shader transform
+fragment_shader red
+uniform 2 0 0 -1 0 2 0 -1 0 0 -1 0 0 0 0 1 
+vertex_data fff
+v .6 .6 0
+v .9 .6 0
+v .9 .9 0
+v .9 .9 0
+v .6 .6 0
+v .6 .9 0
+render triangle
