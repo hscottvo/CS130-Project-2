@@ -134,6 +134,8 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     int x_max = std::min(std::max(std::max(point_a[0], point_b[0]), point_c[0]) + 1, float(state.image_width));
     int y_max = std::min(std::max(std::max(point_a[1], point_b[1]), point_c[1]) + 1, float(state.image_height));
 
+
+    
     // for (int i = 0; i < state.image_width; ++i) {
     //     for (int j = 0; j < state.image_height; ++j) {
     for (int i = x_min; i < x_max; ++i) {
@@ -153,18 +155,45 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
             
 
             if (alpha > -.001 && beta > -0.001 && gamma > -0.001) {
-                float pixel_r;
-                float pixel_g;
-                float pixel_b;
-
-
+            
                 data_fragment fragment_color;
                 fragment_color.data = new float[MAX_FLOATS_PER_VERTEX];
                 data_output pixel_color;
                 state.fragment_shader(fragment_color, pixel_color, state.uniform_data);
-                state.image_color[j*state.image_width+i] = make_pixel(pixel_color.output_color[0]*255, 
-                                                                      pixel_color.output_color[1]*255, 
-                                                                      pixel_color.output_color[2]*255);
+
+                int pixel_r = pixel_color.output_color[0]*255;
+                int pixel_g = pixel_color.output_color[1]*255;
+                int pixel_b = pixel_color.output_color[2]*255;
+
+
+                if (state.floats_per_vertex > 3) {
+                    switch(state.interp_rules[3]){
+                        case interp_type::flat:
+                            pixel_r = v0.data[3]*255;
+                            pixel_g = v0.data[4]*255;
+                            pixel_b = v0.data[5]*255;
+                        break;
+
+                        case interp_type::smooth:
+
+                        break;
+
+                        case interp_type::noperspective:
+                            pixel_r = v0.data[3]*255*alpha + v1.data[3]*255*beta + v2.data[3]*255*gamma;
+                            pixel_g = v0.data[4]*255*alpha + v1.data[4]*255*beta + v2.data[4]*255*gamma;
+                            pixel_b = v0.data[5]*255*alpha + v1.data[5]*255*beta + v2.data[5]*255*gamma;
+                        break;
+
+                        default:
+                            std::cout << "Incorrect interp_rules" << std::endl;
+                            exit(0);
+                        break;
+                    }
+                } 
+
+                state.image_color[j*state.image_width+i] = make_pixel(pixel_r, 
+                                                                      pixel_g, 
+                                                                      pixel_b);
                 delete[] fragment_color.data;
                 // std::cout << "r: " << pixel_color.output_color[0] << " g: " << pixel_color.output_color[1]
                 //         << " b: " << pixel_color.output_color[2] << std::endl;
