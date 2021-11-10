@@ -135,7 +135,7 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     int y_max = std::min(std::max(std::max(point_a[1], point_b[1]), point_c[1]) + 1, float(state.image_height));
 
 
-    
+
     // for (int i = 0; i < state.image_width; ++i) {
     //     for (int j = 0; j < state.image_height; ++j) {
     for (int i = x_min; i < x_max; ++i) {
@@ -194,6 +194,9 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
                 state.image_color[j*state.image_width+i] = make_pixel(pixel_r, 
                                                                       pixel_g, 
                                                                       pixel_b);
+                for (int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
+                    delete fragment_color.data[i];
+                }
                 delete[] fragment_color.data;
                 // std::cout << "r: " << pixel_color.output_color[0] << " g: " << pixel_color.output_color[1]
                 //         << " b: " << pixel_color.output_color[2] << std::endl;
