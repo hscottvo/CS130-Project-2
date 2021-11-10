@@ -1,5 +1,6 @@
 #include "driver_state.h"
 #include <cstring>
+#include <limits>
 
 driver_state::driver_state()
 {
@@ -20,10 +21,11 @@ void initialize_render(driver_state& state, int width, int height)
     state.image_height=height;
     state.image_color=0;
     state.image_depth=0;
-    std::cout<<"TODO: allocate and initialize state.image_depth."<<std::endl;
     state.image_color = new pixel[width*height];
+    state.image_depth = new float[width*height];
     for (int i = 0; i < width*height; ++i){
         state.image_color[i] = make_pixel(0, 0, 0);
+        state.image_depth[i] = std::numeric_limits<float>::max();
     }
 }
 
@@ -58,15 +60,46 @@ void render(driver_state& state, render_type type)
         break;
 
         case render_type::indexed:
-
+            // std::cout<<"TODO: implement rendering indexed triangles."<<std::endl;
+            for(int i = 0; i < state.num_triangles; i++) {
+                clip_triangle(state, 
+                              geometry_arr[state.index_data[i*state.floats_per_vertex]],
+                              geometry_arr[state.index_data[i*state.floats_per_vertex+1]],
+                              geometry_arr[state.index_data[i*state.floats_per_vertex+2]],
+                              6);
+            }
         break;
 
         case render_type::fan:
+            std::cout<<"TODO: implement rendering fanned triangles."<<std::endl;
 
         break;
 
         case render_type::strip:
+            // std::cout<<"TODO: implement rendering triangle strips."<<std::endl;
+            for (int i = 0; i < state.num_vertices - 2; i++) {
+                switch(i % 2) {
+                    case 0:
+                        clip_triangle(state, 
+                              geometry_arr[i],
+                              geometry_arr[i+2],
+                              geometry_arr[i+1],
+                              6);
+                    break;
 
+                    case 1:
+                        clip_triangle(state, 
+                              geometry_arr[i],
+                              geometry_arr[i+1],
+                              geometry_arr[i+2],
+                              6);
+                    break;
+
+                    default:
+                        exit(0);
+                    break;
+                }
+            }
         break;
 
         default:
@@ -76,7 +109,6 @@ void render(driver_state& state, render_type type)
         delete[] geometry_arr[i].data;
     }
     delete[] geometry_arr;
-    std::cout<<"TODO: implement rendering."<<std::endl;
 }
 
 
@@ -158,7 +190,7 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
             
 
             if (alpha > -.001 && beta > -0.001 && gamma > -0.001) {
-            
+                point_p[2] = alpha * point_a[2] + beta * point_b[2] + gamma * point_c[2] + 1;
                 data_fragment fragment_color;
                 fragment_color.data = new float[MAX_FLOATS_PER_VERTEX];
                 data_output pixel_color;
@@ -172,7 +204,7 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
                 if (state.floats_per_vertex > 3) {
                     
                     float k = (alpha / w_a) + (beta / w_b) + (gamma / w_c);
-                    
+
                     switch(state.interp_rules[3]){
                         case interp_type::flat:
                             pixel_r = v0.data[3]*255;
@@ -203,9 +235,16 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
                     }
                 } 
 
-                state.image_color[j*state.image_width+i] = make_pixel(pixel_r, 
-                                                                      pixel_g, 
-                                                                      pixel_b);
+                if (point_p[2] < state.image_depth[j*state.image_width+i]) {
+                    state.image_color[j*state.image_width+i] = make_pixel(pixel_r, 
+                                                                          pixel_g, 
+                                                                          pixel_b);
+                    state.image_depth[j*state.image_width+i] = point_p[2];
+                }
+                // std::cout << point_p[2] << std::endl;
+                // state.image_color[j*state.image_width+i] = make_pixel(pixel_r, 
+                //                                                       pixel_g, 
+                //                                                       pixel_b);
                 delete[] fragment_color.data;
                 // std::cout << "r: " << pixel_color.output_color[0] << " g: " << pixel_color.output_color[1]
                 //         << " b: " << pixel_color.output_color[2] << std::endl;
