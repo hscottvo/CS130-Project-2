@@ -71,12 +71,18 @@ void render(driver_state& state, render_type type)
         break;
 
         case render_type::fan:
-            std::cout<<"TODO: implement rendering fanned triangles."<<std::endl;
+            // std::cout<<"TODO: implement rendering fanned triangles."<<std::endl;
+            for(int i = 0; i < state.num_vertices-2; i++) {
+                clip_triangle(state,
+                              geometry_arr[0],
+                              geometry_arr[i+1],
+                              geometry_arr[i+2],
+                              6);
+            }
 
         break;
 
         case render_type::strip:
-            // std::cout<<"TODO: implement rendering triangle strips."<<std::endl;
             for (int i = 0; i < state.num_vertices - 2; i++) {
                 switch(i % 2) {
                     case 0:
