@@ -54,7 +54,7 @@ void render(driver_state& state, render_type type)
                               geometry_arr[i],
                               geometry_arr[i+1],
                               geometry_arr[i+2],
-                              6);
+                              0);
 
             }
         break;
@@ -66,7 +66,7 @@ void render(driver_state& state, render_type type)
                               geometry_arr[state.index_data[i*state.floats_per_vertex]],
                               geometry_arr[state.index_data[i*state.floats_per_vertex+1]],
                               geometry_arr[state.index_data[i*state.floats_per_vertex+2]],
-                              6);
+                              0);
             }
         break;
 
@@ -77,7 +77,7 @@ void render(driver_state& state, render_type type)
                               geometry_arr[0],
                               geometry_arr[i+1],
                               geometry_arr[i+2],
-                              6);
+                              0);
             }
 
         break;
@@ -90,7 +90,7 @@ void render(driver_state& state, render_type type)
                               geometry_arr[i],
                               geometry_arr[i+2],
                               geometry_arr[i+1],
-                              6);
+                              0);
                     break;
 
                     case 1:
@@ -98,7 +98,7 @@ void render(driver_state& state, render_type type)
                               geometry_arr[i],
                               geometry_arr[i+1],
                               geometry_arr[i+2],
-                              6);
+                              0);
                     break;
 
                     default:
@@ -123,15 +123,131 @@ void render(driver_state& state, render_type type)
 // clip against each of the clipping faces in turn.  When face=6, clip_triangle should
 // simply pass the call on to rasterize_triangle.
 void clip_triangle(driver_state& state, const data_geometry& v0,
-    const data_geometry& v1, const data_geometry& v2,int face)
-{
-    if(face==6)
-    {
-        rasterize_triangle(state, v0, v1, v2);
-        return;
+    const data_geometry& v1, const data_geometry& v2,int face){
+
+    float lambda_a_b;
+    float lambda_b_c;
+    float lambda_c_a;
+    short checking_plane;
+    short plane_val;
+
+    short a_out;
+    short b_out;
+    short c_out;
+    short out_in_string = 0x00; // 0000 0000 0000 0abc - 1 out 0 in
+
+    // sets up new vertices to pass in if needed
+    data_geometry* geometry_arr = new data_geometry[2]; 
+    geometry_arr[0].data = new float[MAX_FLOATS_PER_VERTEX];
+    geometry_arr[1].data = new float[MAX_FLOATS_PER_VERTEX];
+    // if (state.floats_per_vertex > 3) {
+            
+
+    //         switch(state.interp_rules[3]){
+
+    //             case interp_type::smooth:
+    //             break;
+
+
+    //             default: // no perspective & uniform should both use image barycentric for 
+    //             break;
+    //         }
+    //     } 
+
+    switch(face) {
+        case 0: //-x
+            checking_plane = 0;
+            plane_val = -1;
+        break;
+
+        case 1: //+x
+            checking_plane = 0;
+            plane_val = 1;
+        break; 
+ 
+        case 2: //-y
+            checking_plane = 1;
+            plane_val = -1;
+        break; 
+ 
+        case 3: //+y
+            checking_plane = 1;
+            plane_val = 1;
+        break; 
+ 
+        case 4: //-z
+            checking_plane = 2;
+            plane_val = -1;
+        break; 
+ 
+        case 5: //+z
+            checking_plane = 2;
+            plane_val = 1;
+        break; 
+ 
+        case 6: //finish
+            rasterize_triangle(state, v0, v1, v2);
+            return;
+        break;
+
+        default:
+            exit(0);
+        break;
     }
-    std::cout<<"TODO: implement clipping. (The current code passes the triangle through without clipping them.)"<<std::endl;
-    clip_triangle(state,v0,v1,v2,face+1);
+    if (plane_val == 1) {
+        
+        a_out = (v0.gl_Position[checking_plane] > 1)? 0x04: 0x00;
+        b_out = (v1.gl_Position[checking_plane] > 1)? 0x02: 0x00;
+        c_out = (v2.gl_Position[checking_plane] > 1)? 0x01: 0x00;
+    } else {
+        a_out = (v0.gl_Position[checking_plane] < -1)? 0x04: 0x00;
+        b_out = (v1.gl_Position[checking_plane] < -1)? 0x02: 0x00;
+        c_out = (v2.gl_Position[checking_plane] < -1)? 0x01: 0x00;
+    }
+    out_in_string = a_out | b_out | c_out;
+    switch(out_in_string){
+        case 0x00: // all in
+            clip_triangle(state, v0, v1, v2, face+1);
+        break;
+
+        case 0x01: // a b in, c out
+
+        break;
+
+        case 0x02: // a c in, b out
+
+        break;
+
+        case 0x03: // a in, b c out
+
+        break;
+
+        case 0x04: // b c in, a out
+
+        break;
+
+        case 0x05: // b in, a c out
+
+        break;
+
+        case 0x06: // c in, a b out
+
+        break;
+
+        case 0x07: // all out
+            return;
+        break;
+
+        default:
+            std::cout << "Inside-outisde for clipping failed\n";
+            exit(0);
+        break;
+    }
+    delete geometry_arr[0].data;
+    delete geometry_arr[1].data;
+    delete[] geometry_arr;
+
+    // clip_triangle(state,v0,v1,v2,face+1);
 }
 
 // Rasterize the triangle defined by the three vertices in the "in" array.  This
@@ -176,12 +292,8 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     int x_max = std::min(std::max(std::max(point_a[0], point_b[0]), point_c[0]) + 1, float(state.image_width));
     int y_max = std::min(std::max(std::max(point_a[1], point_b[1]), point_c[1]) + 1, float(state.image_height));
 
-
-    // for (int i = 0; i < state.image_width; ++i) {
-    //     for (int j = 0; j < state.image_height; ++j) {
     for (int i = x_min; i < x_max; ++i) {
         for (int j = y_min; j < y_max; ++j) {
-            // figure out what to put for z 
             vec3 point_p = vec3(i, j, 0);
             alpha = (0.5 * ((point_b[0]*point_c[1] - point_c[0]*point_b[1]) + 
                          (point_c[0]*point_p[1]-point_p[0]*point_c[1]) + 
