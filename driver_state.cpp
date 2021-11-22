@@ -204,7 +204,7 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         c_out = (v2.gl_Position[checking_plane] < -1)? 0x01: 0x00;
     }
     out_in_string = a_out | b_out | c_out;
-    std::cout << out_in_string << std::endl;
+    // std::cout << "face " << face << " out_in: " << out_in_string << std::endl;
     switch(out_in_string){
         case 0x00: // all in
             clip_triangle(state, v0, v1, v2, face+1);
@@ -313,8 +313,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 lambda_c_a /= k * v1.gl_Position[3];
             }
             for(int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_a_b * v1.gl_Position[i] + (1-lambda_a_b) * v0.gl_Position[i];
-                q.data[i] = lambda_b_c * v1.gl_Position[i] + (1-lambda_b_c) * v2.gl_Position[i];
+                p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
+                q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c) * v2.data[i];
             }
             clip_triangle(state, v1, q, p, face+1);
 
@@ -334,8 +334,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 lambda_c_a /= k * v2.gl_Position[3];
             }
             for(int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_b_c * v2.gl_Position[i] + (1-lambda_b_c) * v1.gl_Position[i];
-                q.data[i] = lambda_c_a * v2.gl_Position[i] + (1-lambda_c_a) * v0.gl_Position[i];
+                p.data[i] = lambda_b_c * v2.data[i] + (1-lambda_b_c) * v1.data[i];
+                q.data[i] = lambda_c_a * v2.data[i] + (1-lambda_c_a) * v0.data[i];
             }
 
             clip_triangle(state, v2, q, p, face+1);
@@ -351,11 +351,11 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
     }
     if (p.data != nullptr) {
-        delete p.data;
+        delete[] p.data;
         p.data = nullptr;
     }
     if (q.data != nullptr) {
-        delete q.data;
+        delete[] q.data;
         q.data = nullptr;        
     }
 
