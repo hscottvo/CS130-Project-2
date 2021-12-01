@@ -50,12 +50,15 @@ void render(driver_state& state, render_type type)
         case render_type::triangle:
 
             for(int i = 0; i < state.num_vertices-2; i += 3) {
+                std::cout << "v0: " << geometry_arr[i].gl_Position << std::endl;  
+                std::cout << "v1: " << geometry_arr[i+1].gl_Position << std::endl;  
+                std::cout << "v2: " << geometry_arr[i+2].gl_Position << std::endl;
                 clip_triangle(state, 
                               geometry_arr[i],
                               geometry_arr[i+1],
                               geometry_arr[i+2],
                               0);
-
+                
             }
         break;
 
@@ -129,7 +132,7 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     float lambda_b_c;
     float lambda_c_a;
     short checking_plane;
-    short plane_val;
+    float plane_val;
 
     short a_out;
     short b_out;
@@ -138,8 +141,17 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     
     bool interp_persp = false;
     // // sets up new vertices to pass in if needed
+    // data_geometry a;
+    // a.gl_Position = v0.gl_Position / v0.gl_Position[3];
+    // data_geometry b;
+    // b.gl_Position = v1.gl_Position / v1.gl_Position[3];
+    // data_geometry c;
+    // c.gl_Position = v2.gl_Position / v2.gl_Position[3];
     data_geometry p;
     data_geometry q;
+    // a.data = new float[MAX_FLOATS_PER_VERTEX];
+    // b.data = new float[MAX_FLOATS_PER_VERTEX];
+    // c.data = new float[MAX_FLOATS_PER_VERTEX];
     p.data = new float[MAX_FLOATS_PER_VERTEX];
     q.data = new float[MAX_FLOATS_PER_VERTEX];
 
@@ -156,35 +168,54 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     switch(face) {
         case 0: //-x
             checking_plane = 0;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:-1;
             plane_val = -1;
+            std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
+            std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
+            std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
         break;
 
         case 1: //+x
             checking_plane = 0;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:1;
             plane_val = 1;
         break; 
  
         case 2: //-y
             checking_plane = 1;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:-1;
             plane_val = -1;
         break; 
  
         case 3: //+y
             checking_plane = 1;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:1;
             plane_val = 1;
         break; 
  
         case 4: //-z
             checking_plane = 2;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:-1;
             plane_val = -1;
         break; 
  
         case 5: //+z
             checking_plane = 2;
+            // plane_val = (interp_persp)? v0.gl_Position[3]:1;
             plane_val = 1;
         break; 
  
         case 6: //finish
+            // data_geometry a;
+            // data_geometry b;
+            // data_geometry c;
+            // a.data = new float[MAX_FLOATS_PER_VERTEX];
+            // b.data = new float[MAX_FLOATS_PER_VERTEX];
+            // c.data = new float[MAX_FLOATS_PER_VERTEX];
+            // a.gl_Position = v0.gl_Position/v0.gl_Position[3];
+            // b.gl_Position = v1.gl_Position/v1.gl_Position[3];
+            // c.gl_Position = v2.gl_Position/v2.gl_Position[3];
+            
             rasterize_triangle(state, v0, v1, v2);
             return;
         break;
@@ -195,13 +226,13 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     }
     if (plane_val == 1) {
         
-        a_out = (v0.gl_Position[checking_plane] > 1)? 0x04: 0x00;
-        b_out = (v1.gl_Position[checking_plane] > 1)? 0x02: 0x00;
-        c_out = (v2.gl_Position[checking_plane] > 1)? 0x01: 0x00;
+        a_out = (v0.gl_Position[checking_plane] > v0.gl_Position[3])? 0x04: 0x00;
+        b_out = (v1.gl_Position[checking_plane] > v1.gl_Position[3])? 0x02: 0x00;
+        c_out = (v2.gl_Position[checking_plane] > v2.gl_Position[3])? 0x01: 0x00;
     } else {
-        a_out = (v0.gl_Position[checking_plane] < -1)? 0x04: 0x00;
-        b_out = (v1.gl_Position[checking_plane] < -1)? 0x02: 0x00;
-        c_out = (v2.gl_Position[checking_plane] < -1)? 0x01: 0x00;
+        a_out = (v0.gl_Position[checking_plane] < -v0.gl_Position[3])? 0x04: 0x00;
+        b_out = (v1.gl_Position[checking_plane] < -v1.gl_Position[3])? 0x02: 0x00;
+        c_out = (v2.gl_Position[checking_plane] < -v2.gl_Position[3])? 0x01: 0x00;
     }
     out_in_string = a_out | b_out | c_out;
     // std::cout << "face " << face << " out_in: " << out_in_string << std::endl;
@@ -233,26 +264,23 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x02: // a c in, b out
-            lambda_a_b = (plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
             lambda_b_c = (plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
+            lambda_c_a = (plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
 
-            p.gl_Position = v0.gl_Position + lambda_a_b * (v1.gl_Position - v0.gl_Position);
-            q.gl_Position = v2.gl_Position + lambda_b_c * (v1.gl_Position - v2.gl_Position);
+            p.gl_Position = v2.gl_Position + lambda_b_c * (v1.gl_Position - v2.gl_Position);
+            q.gl_Position = v0.gl_Position + lambda_c_a * (v1.gl_Position - v0.gl_Position);
 
             if (interp_persp) {
-                // for p 
-                float k = 1 / (lambda_a_b * v0.gl_Position[3] + (1-lambda_a_b) * v1.gl_Position[3]);
-                lambda_a_b /= k * v0.gl_Position[3];
-                // for q
-                k = 1 / (lambda_b_c * v2.gl_Position[3] + (1-lambda_b_c) * v1.gl_Position[3]);
-                lambda_b_c /= k * v2.gl_Position[3];
+                float k = 1 / (lambda_b_c * v2.gl_Position[3] + (1 - lambda_b_c) * v1.gl_Position[3]);
+                lambda_b_c /= (k * v2.gl_Position[3]);
+                k = 1 / (lambda_c_a * v0.gl_Position[3] + (1 - lambda_c_a) * v1.gl_Position[3]);
             }
             for (int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_a_b * v0.data[i] + (1-lambda_a_b)*v1.data[i];
-                q.data[i] = lambda_b_c * v2.data[i] + (1-lambda_b_c)*v1.data[i];
+                p.data[i] = lambda_b_c * v2.data[i] + (1-lambda_b_c*v1.data[i]);
+                q.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a*v1.data[i]);
             }
-            clip_triangle(state, v0, v2, q, face+1);
-            clip_triangle(state, v0, q, p, face+1);
+            clip_triangle(state, v2, v0, p, face+1);
+            clip_triangle(state, p, v0, q, face+1);
         break;
 
         case 0x03: // a in, b c out
@@ -273,11 +301,19 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a) * v2.data[i];
                 q.data[i] = lambda_a_b * v0.data[i] + (1-lambda_a_b) * v1.data[i];                
             }
+            std::cout << "case 3" << std::endl;
+
+
+            std::cout << "a_b: " << lambda_a_b << std::endl;
+            std::cout << "c_a: " << lambda_c_a << std::endl;
+
+            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;  
+            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v0, q, p, face+1);
 
         break;
 
-        case 0x04: // b c in, a out
+        case 0x04: // b c in, \a out
             lambda_a_b = (plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
             lambda_c_a = (plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
 
@@ -294,6 +330,14 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
                 q.data[i] = lambda_c_a * v2.data[i] + (1-lambda_c_a) * v0.data[i];
             }
+            std::cout << "case 4" << std::endl;
+            std::cout << "a_b: " << lambda_a_b << std::endl;
+            std::cout << "c_a: " << lambda_c_a << std::endl;
+            std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
+            std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
+            std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
+            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
+            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v1, v2, p, face+1);
             clip_triangle(state, p, v2, q, face+1);
 
@@ -316,6 +360,9 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
                 q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c) * v2.data[i];
             }
+            std::cout << "case 5" << std::endl;
+            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
+            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v1, q, p, face+1);
 
         break;
@@ -358,6 +405,9 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         delete[] q.data;
         q.data = nullptr;        
     }
+    // delete[] a.data;
+    // delete[] b.data;
+    // delete[] c.data;
 
     // clip_triangle(state,v0,v1,v2,face+1);
 }
