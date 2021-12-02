@@ -50,9 +50,9 @@ void render(driver_state& state, render_type type)
         case render_type::triangle:
 
             for(int i = 0; i < state.num_vertices-2; i += 3) {
-                std::cout << "v0: " << geometry_arr[i].gl_Position << std::endl;  
-                std::cout << "v1: " << geometry_arr[i+1].gl_Position << std::endl;  
-                std::cout << "v2: " << geometry_arr[i+2].gl_Position << std::endl;
+                // std::cout << "v0: " << geometry_arr[i].gl_Position << std::endl;  
+                // std::cout << "v1: " << geometry_arr[i+1].gl_Position << std::endl;  
+                // std::cout << "v2: " << geometry_arr[i+2].gl_Position << std::endl;
                 clip_triangle(state, 
                               geometry_arr[i],
                               geometry_arr[i+1],
@@ -170,9 +170,9 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             checking_plane = 0;
             // plane_val = (interp_persp)? v0.gl_Position[3]:-1;
             plane_val = -1;
-            std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
-            std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
-            std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
+            // std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
+            // std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
+            // std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
         break;
 
         case 1: //+x
@@ -301,14 +301,14 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a) * v2.data[i];
                 q.data[i] = lambda_a_b * v0.data[i] + (1-lambda_a_b) * v1.data[i];                
             }
-            std::cout << "case 3" << std::endl;
+            //std::cout << "case 3" << std::endl;
 
 
-            std::cout << "a_b: " << lambda_a_b << std::endl;
-            std::cout << "c_a: " << lambda_c_a << std::endl;
+            // std::cout << "a_b: " << lambda_a_b << std::endl;
+            // std::cout << "c_a: " << lambda_c_a << std::endl;
 
-            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;  
-            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
+            // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;  
+            // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v0, q, p, face+1);
 
         break;
@@ -330,14 +330,14 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
                 q.data[i] = lambda_c_a * v2.data[i] + (1-lambda_c_a) * v0.data[i];
             }
-            std::cout << "case 4" << std::endl;
-            std::cout << "a_b: " << lambda_a_b << std::endl;
-            std::cout << "c_a: " << lambda_c_a << std::endl;
-            std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
-            std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
-            std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
-            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
-            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
+            // std::cout << "case 4" << std::endl;
+            // std::cout << "a_b: " << lambda_a_b << std::endl;
+            // std::cout << "c_a: " << lambda_c_a << std::endl;
+            // std::cout << "v0: " << v0.gl_Position[0] << ' ' << v0.gl_Position[1] << ' ' << v0.gl_Position[2] << std::endl;  
+            // std::cout << "v1: " << v1.gl_Position[0] << ' ' << v1.gl_Position[1] << ' ' << v1.gl_Position[2] << std::endl;  
+            // std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
+            // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
+            // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v1, v2, p, face+1);
             clip_triangle(state, p, v2, q, face+1);
 
@@ -360,9 +360,9 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
                 p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
                 q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c) * v2.data[i];
             }
-            std::cout << "case 5" << std::endl;
-            std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
-            std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
+            // std::cout << "case 5" << std::endl;
+            // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
+            // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
             clip_triangle(state, v1, q, p, face+1);
 
         break;
