@@ -1,6 +1,7 @@
 #include "driver_state.h"
 #include <cstring>
 #include <limits>
+#include <iostream>
 
 driver_state::driver_state()
 {
@@ -127,6 +128,7 @@ void render(driver_state& state, render_type type)
 // simply pass the call on to rasterize_triangle.
 void clip_triangle(driver_state& state, const data_geometry& v0,
     const data_geometry& v1, const data_geometry& v2,int face){
+    
 
     float lambda_a_b;
     float lambda_b_c;
@@ -205,17 +207,7 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             plane_val = 1;
         break; 
  
-        case 6: //finish
-            // data_geometry a;
-            // data_geometry b;
-            // data_geometry c;
-            // a.data = new float[MAX_FLOATS_PER_VERTEX];
-            // b.data = new float[MAX_FLOATS_PER_VERTEX];
-            // c.data = new float[MAX_FLOATS_PER_VERTEX];
-            // a.gl_Position = v0.gl_Position/v0.gl_Position[3];
-            // b.gl_Position = v1.gl_Position/v1.gl_Position[3];
-            // c.gl_Position = v2.gl_Position/v2.gl_Position[3];
-            
+        case 6: //finish            
             rasterize_triangle(state, v0, v1, v2);
             return;
         break;
@@ -243,8 +235,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
 
         case 0x01: // a b in, c out
 
-            lambda_b_c = (plane_val - v1.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
-            lambda_c_a = (plane_val - v0.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
+            lambda_b_c = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
+            lambda_c_a = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
 
             p.gl_Position = v0.gl_Position + lambda_c_a * (v2.gl_Position - v0.gl_Position);
             q.gl_Position = v1.gl_Position + lambda_b_c * (v2.gl_Position - v1.gl_Position);
@@ -264,8 +256,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x02: // a c in, b out
-            lambda_b_c = (plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
-            lambda_c_a = (plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
+            lambda_b_c = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
+            lambda_c_a = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
 
             p.gl_Position = v2.gl_Position + lambda_b_c * (v1.gl_Position - v2.gl_Position);
             q.gl_Position = v0.gl_Position + lambda_c_a * (v1.gl_Position - v0.gl_Position);
@@ -284,8 +276,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x03: // a in, b c out
-            lambda_a_b = (plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
-            lambda_c_a = (plane_val - v0.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
+            lambda_a_b = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
+            lambda_c_a = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
 
             p.gl_Position = v0.gl_Position + lambda_c_a * (v2.gl_Position - v0.gl_Position);
             q.gl_Position = v0.gl_Position + lambda_a_b * (v1.gl_Position - v0.gl_Position);
@@ -314,8 +306,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x04: // b c in, \a out
-            lambda_a_b = (plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
-            lambda_c_a = (plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
+            lambda_a_b = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
+            lambda_c_a = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
 
             p.gl_Position = v1.gl_Position + lambda_a_b * (v0.gl_Position - v1.gl_Position);
             q.gl_Position = v2.gl_Position + lambda_c_a * (v0.gl_Position - v2.gl_Position);
@@ -344,8 +336,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x05: // b in, a c out
-            lambda_a_b = (plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
-            lambda_b_c = (plane_val - v2.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
+            lambda_a_b = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
+            lambda_b_c = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
 
             p.gl_Position = v1.gl_Position + lambda_a_b * (v0.gl_Position - v1.gl_Position);
             q.gl_Position = v1.gl_Position + lambda_b_c * (v2.gl_Position - v1.gl_Position);
@@ -368,8 +360,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         break;
 
         case 0x06: // c in, a b out
-            lambda_b_c = (plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
-            lambda_c_a = (plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
+            lambda_b_c = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
+            lambda_c_a = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
 
             p.gl_Position = v2.gl_Position + lambda_b_c * (v1.gl_Position - v2.gl_Position);
             q.gl_Position = v2.gl_Position + lambda_c_a * (v0.gl_Position - v2.gl_Position);
