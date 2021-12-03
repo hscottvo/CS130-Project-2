@@ -133,6 +133,9 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     float lambda_a_b;
     float lambda_b_c;
     float lambda_c_a;
+    float lambda_a_b_persp;
+    float lambda_b_c_persp;
+    float lambda_c_a_persp;
     short checking_plane;
     float plane_val;
 
@@ -142,30 +145,15 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     short out_in_string = 0x00; // 0000 0000 0000 0abc - 1 out 0 in
     
     bool interp_persp = false;
-    // // sets up new vertices to pass in if needed
-    // data_geometry a;
-    // a.gl_Position = v0.gl_Position / v0.gl_Position[3];
-    // data_geometry b;
-    // b.gl_Position = v1.gl_Position / v1.gl_Position[3];
-    // data_geometry c;
-    // c.gl_Position = v2.gl_Position / v2.gl_Position[3];
     data_geometry p;
     data_geometry q;
-    // a.data = new float[MAX_FLOATS_PER_VERTEX];
-    // b.data = new float[MAX_FLOATS_PER_VERTEX];
-    // c.data = new float[MAX_FLOATS_PER_VERTEX];
     p.data = new float[MAX_FLOATS_PER_VERTEX];
     q.data = new float[MAX_FLOATS_PER_VERTEX];
 
-    // data_vertex vertex_0;
-    // data_vertex vertex_1;
-    // data_vertex vertex_2;
-    // vertex.data = &(state.vertex_data[i * state.floats_per_vertex]);
-    // state.vertex_shader(vertex, geometry_arr[i], state.uniform_data);
     
-    if (state.floats_per_vertex > 3) {
-        if (state.interp_rules[3] == interp_type::smooth) interp_persp = true;
-    }
+    // if (state.floats_per_vertex > 3) {
+    //     if (state.interp_rules[3] == interp_type::smooth) interp_persp = true;
+    // }
 
     switch(face) {
         case 0: //-x
@@ -241,15 +229,41 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             p.gl_Position = v0.gl_Position + lambda_c_a * (v2.gl_Position - v0.gl_Position);
             q.gl_Position = v1.gl_Position + lambda_b_c * (v2.gl_Position - v1.gl_Position);
 
-            if (interp_persp){
-                float k = 1 / (lambda_c_a * v0.gl_Position[3] + (1 - lambda_c_a) * v2.gl_Position[3]);
-                lambda_c_a /= (k * v0.gl_Position[3]);
-                k = 1 / (lambda_b_c * v1.gl_Position[3] + (1 - lambda_b_c) * v2.gl_Position[3]);
-                lambda_b_c /= (k * v1.gl_Position[3]);
-            }
+            // if (interp_persp){
+            //     float k = (lambda_c_a / v0.gl_Position[3] + (1 - lambda_c_a) / v2.gl_Position[3]);
+            //     lambda_c_a /= (k * v0.gl_Position[3]);
+            //     k = (lambda_b_c / v1.gl_Position[3] + (1 - lambda_b_c) / v2.gl_Position[3]);
+            //     lambda_b_c /= (k * v1.gl_Position[3]);
+            // }
+            float k;
+            
             for (int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a)*v2.data[i];
-                q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c)*v2.data[i];
+                switch(state.interp_rules[i]) {
+                    case interp_type::noperspective:
+                        p.data[i] = v0.data[i] + lambda_c_a * (v2.data[i] - v0.data[i]);
+                        q.data[i] = v1.data[i] + lambda_b_c * (v2.data[i] - v1.data[i]);
+                    break;
+
+                    case interp_type::smooth:
+                        k = lambda_c_a / v0.data[3] + (1-lambda_c_a) / v2.data[3];
+                        lambda_c_a_persp = lambda_c_a / (v0.gl_Position[3]*k);
+                        p.data[i] = v0.data[i] + lambda_c_a_persp * (v2.data[i] - v0.data[i]);
+                        k = lambda_b_c / v1.data[3] + (1-lambda_b_c) / v2.data[3];
+                        lambda_b_c_persp = lambda_b_c / (v1.gl_Position[3]*k);
+                        q.data[i] = v1.data[i] + lambda_b_c_persp * (v2.data[3] - v1.data[i]);
+                    break;
+
+                    default:
+                        p.data[i] = -1;
+                        q.data[i] = -1;
+                }
+                // if(i < 3) {
+                //     p.data[i] = p.gl_Position[i];
+                //     q.data[i] = q.gl_Position[i];
+                // } else {
+                //     p.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a)*v2.data[i];
+                //     q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c)*v2.data[i];
+                // }
             }
             clip_triangle(state, v0, v1, p, face+1);
             clip_triangle(state, p, v1, q, face+1);
@@ -257,20 +271,64 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
 
         case 0x02: // a c in, b out
             lambda_b_c = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
-            lambda_c_a = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
+            lambda_a_b = (v0.gl_Position[3]*plane_val - v0.gl_Position[checking_plane]) / (v1.gl_Position[checking_plane] - v0.gl_Position[checking_plane]);
 
             p.gl_Position = v2.gl_Position + lambda_b_c * (v1.gl_Position - v2.gl_Position);
-            q.gl_Position = v0.gl_Position + lambda_c_a * (v1.gl_Position - v0.gl_Position);
+            q.gl_Position = v0.gl_Position + lambda_a_b * (v1.gl_Position - v0.gl_Position);
 
-            if (interp_persp) {
-                float k = 1 / (lambda_b_c * v2.gl_Position[3] + (1 - lambda_b_c) * v1.gl_Position[3]);
-                lambda_b_c /= (k * v2.gl_Position[3]);
-                k = 1 / (lambda_c_a * v0.gl_Position[3] + (1 - lambda_c_a) * v1.gl_Position[3]);
-            }
             for (int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_b_c * v2.data[i] + (1-lambda_b_c*v1.data[i]);
-                q.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a*v1.data[i]);
+                switch(state.interp_rules[i]){
+                    case interp_type::noperspective:
+                        p.data[i] = v2.data[i] + lambda_b_c * (v1.data[i] - v2.data[i]);
+                        q.data[i] = v0.data[i] + lambda_a_b * (v1.data[i] - v0.data[i]);
+                    break;
+
+                    case interp_type::smooth:
+                        k = lambda_b_c / v2.data[3] + (1-lambda_b_c) / v1.data[3];
+                        lambda_b_c_persp = lambda_b_c / (v2.gl_Position[3]*k);
+                        p.data[i] = v2.data[i] + lambda_b_c_persp * (v1.data[i] - v2.data[i]);
+                        k = lambda_a_b / v0.data[3] + (1-lambda_a_b) / v1.data[3];
+                        lambda_a_b_persp = lambda_a_b / (v0.gl_Position[3]*k);
+                        q.data[i] = v0.data[i] + lambda_a_b_persp * (v1.data[i] - v0.data[i]);
+                    break;
+
+                    default:
+                        p.data[i] = -1;
+                        q.data[i] = -1;
+                    break;
+                }
             }
+            // You are here
+            // std::cout << "BUG HERE" << std::endl; 
+            // std::cout << "lambda c a: " << lambda_c_a << std::endl;
+            // std::cout << "lambda b c: " << lambda_b_c << std::endl;
+            // std::cout << "p: ";
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << p.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // std::cout << "q: ";
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << q.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // // std::cout << "a: " << v0.gl_Position << ' ';
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << v0.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // std::cout << "b: " << v1.gl_Position << ' ';
+            // for(unsigned short i = 3; i < 6; i++ ) {
+            //     std::cout << v1.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // std::cout << "c: " << v2.gl_Position << ' ';
+            // for(unsigned short i = 3; i < 6; i++ ) {
+            //     std::cout << v2.data[i] << ' ';
+            // }
+            // std::cout << std::endl; 
+
+
             clip_triangle(state, v2, v0, p, face+1);
             clip_triangle(state, p, v0, q, face+1);
         break;
@@ -282,16 +340,33 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             p.gl_Position = v0.gl_Position + lambda_c_a * (v2.gl_Position - v0.gl_Position);
             q.gl_Position = v0.gl_Position + lambda_a_b * (v1.gl_Position - v0.gl_Position);
 
-            if (interp_persp) {
-                float k = 1 / (lambda_c_a * v0.gl_Position[3] + (1 - lambda_c_a) * v2.gl_Position[3]);
-                lambda_c_a /= (k * v0.gl_Position[3]);
-                k = 1 / (lambda_a_b * v0.gl_Position[3] + (1-lambda_a_b) * v1.gl_Position[3]);
-                lambda_a_b /= k * v0.gl_Position[3];
-            }
+            // if (interp_persp) {
+            //     float k = (lambda_c_a / v0.gl_Position[3] + (1 - lambda_c_a) / v2.gl_Position[3]);
+            //     lambda_c_a /= (k * v0.gl_Position[3]);
+            //     k = (lambda_a_b / v0.gl_Position[3] + (1-lambda_a_b) / v1.gl_Position[3]);
+            //     lambda_a_b /= k * v0.gl_Position[3];
+            // }
 
             for (int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_c_a * v0.data[i] + (1-lambda_c_a) * v2.data[i];
-                q.data[i] = lambda_a_b * v0.data[i] + (1-lambda_a_b) * v1.data[i];                
+                switch(state.interp_rules[i]){
+                    case interp_type::noperspective:
+                        p.data[i] = v0.data[i] + lambda_c_a * (v2.data[i] - v0.data[i]);
+                        q.data[i] = v0.data[i] + lambda_a_b * (v1.data[i] - v0.data[i]);
+                    break;
+                    case interp_type::smooth:
+                        k = lambda_c_a / v0.gl_Position[3] + (1-lambda_c_a) / v2.gl_Position[3];
+                        lambda_c_a_persp = lambda_c_a / (v0.gl_Position[3] * k);
+                        p.data[i] = v0.data[i] + lambda_c_a_persp * (v2.data[i] - v0.data[i]);
+                        k = lambda_a_b / v0.gl_Position[3] + (1-lambda_a_b) / v1.gl_Position[3];
+                        lambda_a_b_persp = lambda_a_b / (v0.gl_Position[3] * k);
+                        q.data[i] = v0.data[i] + lambda_a_b_persp * (v1.data[i] - v0.data[i]);
+                    break;
+
+                    default:
+                        p.data[i] = -1;
+                        q.data[i] = -1;
+                    break;
+                }               
             }
             //std::cout << "case 3" << std::endl;
 
@@ -301,27 +376,77 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
 
             // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;  
             // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
+
             clip_triangle(state, v0, q, p, face+1);
 
         break;
 
-        case 0x04: // b c in, \a out
+        case 0x04: // b c in, a out
             lambda_a_b = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
             lambda_c_a = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v2.gl_Position[checking_plane]);
 
             p.gl_Position = v1.gl_Position + lambda_a_b * (v0.gl_Position - v1.gl_Position);
             q.gl_Position = v2.gl_Position + lambda_c_a * (v0.gl_Position - v2.gl_Position);
 
-            if (interp_persp) {
-                float k = 1 / (lambda_a_b * v1.gl_Position[3] + (1-lambda_a_b) * v0.gl_Position[3]);
-                lambda_a_b /= k * v1.gl_Position[3];
-                k = 1 / (lambda_c_a * v2.gl_Position[3] + (1-lambda_c_a) * v0.gl_Position[3]);
-                lambda_c_a /= k * v2.gl_Position[3];
-            }
+            // if (interp_persp) {
+            //     float k = (lambda_a_b / v1.gl_Position[3] + (1-lambda_a_b) / v0.gl_Position[3]);
+            //     lambda_a_b /= k * v1.gl_Position[3];
+            //     k = (lambda_c_a / v2.gl_Position[3] + (1-lambda_c_a) / v0.gl_Position[3]);
+            //     lambda_c_a /= k * v2.gl_Position[3];
+            // }
             for(int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
-                q.data[i] = lambda_c_a * v2.data[i] + (1-lambda_c_a) * v0.data[i];
+                switch(state.interp_rules[i]) {
+                    case interp_type::noperspective:
+                        p.data[i] = v1.data[i] + lambda_a_b * (v0.data[i] - v1.data[i]);
+                        q.data[i] = v2.data[i] + lambda_c_a * (v0.data[i] - v2.data[i]);
+                    break;
+
+                    case interp_type::smooth:
+                        k = lambda_a_b / v1.gl_Position[3] + (1-lambda_a_b) / v0.gl_Position[3];
+                        lambda_a_b_persp = lambda_a_b / (v1.gl_Position[3] * k);
+                        p.data[i] = v1.data[i] + lambda_a_b_persp * (v0.data[i] - v1.data[i]);
+                        k = lambda_c_a / v2.gl_Position[3] + (1-lambda_c_a) / v0.gl_Position[3];
+                        lambda_c_a_persp = lambda_c_a / (v2.gl_Position[3] * k);
+                        p.data[i] = v2.data[i] + lambda_c_a_persp * (v0.data[i] - v2.data[i]);
+
+                    break;
+
+                    default:
+                        p.data[i] = -1;
+                        q.data[i] = -1;
+                    break;;
+                }
             }
+            // std::cout << "lambda a b: " << lambda_a_b << std::endl;
+            // std::cout << "lambda c a: " << lambda_c_a << std::endl;
+            // std::cout << "p: ";
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << p.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // std::cout << "q: ";
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << q.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // // std::cout << "a: " << v0.gl_Position << ' ';
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << v0.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // // std::cout << "b: " << v1.gl_Position << ' ';
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << v1.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // // std::cout << "c: " << v2.gl_Position << ' ';
+            // for(unsigned short i = 0; i < 6; i++ ) {
+            //     std::cout << v2.data[i] << ' ';
+            // }
+            // std::cout << std::endl;
+            // std::cout << "lfksjflkdsjfk " << v0.gl_Position[3] << std::endl;
+
+            // lkdjfldsfjlsdjkflskjfdkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk 
             // std::cout << "case 4" << std::endl;
             // std::cout << "a_b: " << lambda_a_b << std::endl;
             // std::cout << "c_a: " << lambda_c_a << std::endl;
@@ -330,33 +455,62 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             // std::cout << "v2: " << v2.gl_Position[0] << ' ' << v2.gl_Position[1] << ' ' << v2.gl_Position[2] << std::endl;  
             // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
             // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
+
             clip_triangle(state, v1, v2, p, face+1);
             clip_triangle(state, p, v2, q, face+1);
-
         break;
 
         case 0x05: // b in, a c out
             lambda_a_b = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v0.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
-            lambda_b_c = (v2.gl_Position[3]*plane_val - v2.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
+            lambda_b_c = (v1.gl_Position[3]*plane_val - v1.gl_Position[checking_plane]) / (v2.gl_Position[checking_plane] - v1.gl_Position[checking_plane]);
 
             p.gl_Position = v1.gl_Position + lambda_a_b * (v0.gl_Position - v1.gl_Position);
             q.gl_Position = v1.gl_Position + lambda_b_c * (v2.gl_Position - v1.gl_Position);
 
-            if (interp_persp) {
-                float k = 1 / (lambda_a_b * v1.gl_Position[3] + (1-lambda_a_b) * v0.gl_Position[3]);
-                lambda_a_b /= k * v1.gl_Position[3];
-                k = 1 / (lambda_b_c * v1.gl_Position[3] + (1-lambda_b_c) * v2.gl_Position[3]);
-                lambda_c_a /= k * v1.gl_Position[3];
-            }
+            // if (interp_persp) {
+            //     float k = (lambda_a_b / v1.gl_Position[3] + (1-lambda_a_b) / v0.gl_Position[3]);
+            //     lambda_a_b /= k * v1.gl_Position[3];
+            //     k = (lambda_b_c / v1.gl_Position[3] + (1-lambda_b_c) / v2.gl_Position[3]);
+            //     lambda_c_a /= k * v1.gl_Position[3];
+            // }
             for(int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
-                q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c) * v2.data[i];
+                // if (i < 3) {
+                //     p.data[i] = p.gl_Position[i];
+                //     q.data[i] = q.gl_Position[i];
+                // } else {
+                //     p.data[i] = lambda_a_b * v1.data[i] + (1-lambda_a_b) * v0.data[i];
+                //     q.data[i] = lambda_b_c * v1.data[i] + (1-lambda_b_c) * v2.data[i];
+                // }
+                switch(state.interp_rules[i]) {
+                    case interp_type::noperspective:
+                        p.data[i] = v1.data[i] + lambda_a_b * (v0.data[i] - v1.data[i]);
+                        q.data[i] = v1.data[i] + lambda_b_c * (v2.data[i] - v1.data[i]);
+                    break;
+
+                    case interp_type::smooth:
+                        k = lambda_a_b / v1.gl_Position[3] + (1-lambda_a_b) / v0.gl_Position[3];
+                        lambda_a_b_persp = lambda_a_b / (v1.gl_Position[3]*k);
+                        p.data[i] = v1.data[i] + lambda_a_b_persp * (v0.data[i] - v1.data[i]);
+                        k = lambda_b_c / v1.gl_Position[3] + (1-lambda_b_c) / v2.gl_Position[3];
+                        lambda_b_c_persp = lambda_b_c / (v1.gl_Position[3]*k);
+                        q.data[i] = v1.data[i] + lambda_b_c_persp * (v2.data[i] - v1.data[i]);
+                    break;
+
+                    default:
+                        p.data[i] = -1;
+                        q.data[i] = -1;
+                    break;
+                }
             }
             // std::cout << "case 5" << std::endl;
             // std::cout << "p: " << p.gl_Position[0] << ' ' << p.gl_Position[1] << ' ' << p.gl_Position[2] << std::endl;
             // std::cout << "q" << q.gl_Position[0] << ' ' << q.gl_Position[1] << ' ' << q.gl_Position[2] << std::endl;
-            clip_triangle(state, v1, q, p, face+1);
+            // std::cout << "a: " << v0.gl_Position << std::endl << "b: " << v1.gl_Position << std::endl << "c: " << v2.gl_Position << std::endl
+            //  << "p: " << p.gl_Position << std::endl << "q: " << q.gl_Position << std::endl;
+            // std::cout << "plane " << checking_plane << std::endl;
+            // std::cout << "case " << out_in_string << "\n";
 
+            clip_triangle(state, v1, q, p, face+1);
         break;
 
         case 0x06: // c in, a b out
@@ -367,15 +521,33 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             q.gl_Position = v2.gl_Position + lambda_c_a * (v0.gl_Position - v2.gl_Position);
 
             if (interp_persp) {
-                float k = 1 / (lambda_b_c * v2.gl_Position[3] + (1-lambda_b_c) * v1.gl_Position[3]);
+                float k = (lambda_b_c / v2.gl_Position[3] + (1-lambda_b_c) / v1.gl_Position[3]);
                 lambda_b_c /= k * v2.gl_Position[3];
-                k = 1 / (lambda_c_a * v2.gl_Position[3] + (1-lambda_c_a) * v0.gl_Position[3]);
+                k = (lambda_c_a / v2.gl_Position[3] + (1-lambda_c_a) / v0.gl_Position[3]);
                 lambda_c_a /= k * v2.gl_Position[3];
             }
             for(int i = 0; i < MAX_FLOATS_PER_VERTEX; ++i) {
-                p.data[i] = lambda_b_c * v2.data[i] + (1-lambda_b_c) * v1.data[i];
-                q.data[i] = lambda_c_a * v2.data[i] + (1-lambda_c_a) * v0.data[i];
+                switch(state.interp_rules[i]){
+                    case interp_type::noperspective:
+                        p.data[i] = v2.data[i] + lambda_b_c * (v1.data[i] - v2.data[i]);
+                        q.data[i] = v2.data[i] + lambda_c_a * (v0.data[i] - v2.data[i]);
+                    break;
+
+                    case interp_type::smooth:
+                        k = lambda_b_c / v2.gl_Position[3] + (1-lambda_b_c) * v1.gl_Position[3];
+                        lambda_b_c_persp = lambda_b_c / (v2.gl_Position[3]*k);
+                        p.data[i] = v2.data[i] + lambda_b_c_persp * (v1.data[i] - v2.data[i]);
+                        k = lambda_c_a / v2.gl_Position[3] + (1-lambda_c_a) * v0.gl_Position[3];
+                        lambda_c_a_persp = lambda_c_a / (v2.gl_Position[3]*k);
+                        q.data[i] = v2.data[i] + lambda_c_a_persp * (v0.data[i] - v2.data[i]);
+                    break;
+
+                    default:
+
+                    break;
+                }
             }
+
 
             clip_triangle(state, v2, q, p, face+1);
 
@@ -431,7 +603,7 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
                         v2.gl_Position[2]/w_c);
     point_c[0] = ((state.image_width-1)*((point_c[0]+1)/2.0));
     point_c[1] = ((state.image_height-1)*((point_c[1]+1)/2.0));
-
+// std::cout << "pts " << point_a << "   " << point_b << "   " << point_c << std::endl;
     // can get bounding box of triangle and iterate over that instead of the whole image
     float total_area = 0.5 * ((point_b[0]*point_c[1] - point_c[0]*point_b[1]) + 
                               (point_c[0]*point_a[1]-point_a[0]*point_c[1]) + 
